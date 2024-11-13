@@ -1,0 +1,42 @@
+/* styles.css */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+h1 {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.guitar-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.guitar-box {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.guitar-box h3 {
+    margin-top: 0;
+}
+
+.guitar-box a {
+    color: #0073e6;
+    text-decoration: none;
+    display: inline-block;
+    margin-top: 10px;
+}
+
+.guitar-box a:hover {
+    text-decoration: underline;
+}
