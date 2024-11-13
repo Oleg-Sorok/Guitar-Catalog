@@ -2,8 +2,19 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer');
+const axios = require('axios');
 
 const PORT = 2000;
+
+async function downloadImage(imageUrl, imageName) {
+    const writer = fs.createWriteStream(path.resolve(__dirname, 'public', 'images', imageName));
+    const response = await axios({ url: imageUrl, method: 'GET', responseType: 'stream' });
+    response.data.pipe(writer);
+    return new Promise((resolve, reject) => {
+        writer.on('finish', resolve);
+        writer.on('error', reject);
+    });
+}
 
 async function scrapeGuitars() {
     const browser = await puppeteer.launch({ headless: true });
@@ -21,22 +32,31 @@ async function scrapeGuitars() {
                 const name = element.querySelector('.goods-tile__title') ? element.querySelector('.goods-tile__title').textContent.trim() : '';
                 const price = element.querySelector('.goods-tile__price-value') ? element.querySelector('.goods-tile__price-value').textContent.trim() : '';
                 const link = element.querySelector('.goods-tile__title') ? element.querySelector('.goods-tile__title').href : '';
+                const imageUrl = element.querySelector('.goods-tile__picture img') ? element.querySelector('.goods-tile__picture img').src : '';
 
                 if (name && price) {
-                    results.push({ name, price, link });
+                    results.push({ name, price, link, imageUrl });
                 }
             });
 
             return results;
         });
 
-        const guitarsHTML = guitars.map(guitar => `
-            <div class="guitar-box">
-                <h3>${guitar.name}</h3>
-                <p>Ціна: ${guitar.price}</p>
-                <a href="${guitar.link}" target="_blank">Переглянути</a>
-            </div>
-        `).join('');
+        const guitarsHTML = await Promise.all(guitars.map(async (guitar) => {
+            const imageName = guitar.imageUrl ? guitar.imageUrl.split('/').pop() : '';
+            if (guitar.imageUrl) {
+                await downloadImage(guitar.imageUrl, imageName);
+            }
+
+            return `
+                <div class="guitar-box">
+                    <h3>${guitar.name}</h3>
+                    <p>Ціна: ${guitar.price}</p>
+                    <a href="${guitar.link}" target="_blank">Переглянути</a>
+                    ${guitar.imageUrl ? `<img src="/public/images/${imageName}" alt="Guitar Image">` : ''}
+                </div>
+            `;
+        }));
 
         const htmlContent = `
             <!DOCTYPE html>
@@ -50,7 +70,7 @@ async function scrapeGuitars() {
             <body>
                 <h1>Каталог Гітар</h1>
                 <div class="guitar-container">
-                    ${guitarsHTML}
+                    ${guitarsHTML.join('')}
                 </div>
             </body>
             </html>
@@ -84,7 +104,7 @@ http.createServer(async (req, res) => {
                 res.end('File not found');
             } else {
                 const ext = path.extname(filePath).slice(1);
-                const contentType = ext === 'css' ? 'text/css' : 'text/plain';
+                const contentType = ext === 'css' ? 'text/css' : ext === 'jpg' || ext === 'png' || ext === 'jpeg' ? 'image/jpeg' : 'text/plain';
                 res.writeHead(200, { 'Content-Type': contentType });
                 res.end(content, 'utf-8');
             }
