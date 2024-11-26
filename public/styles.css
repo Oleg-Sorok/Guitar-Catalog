@@ -5,92 +5,115 @@ body {
     background-color: #f4f4f4;
 }
 
-header {
-    background-color: #333;
-    color: white;
-    padding: 10px;
+h1 {
+    text-align: center;
+    padding: 20px;
+}
+
+.guitars-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+}
+
+.guitar {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 16px;
+    width: 250px;
     text-align: center;
 }
 
-header h1 {
-    margin: 0;
-}
-
-form {
-    background-color: #fff;
-    margin: 20px auto;
-    padding: 20px;
+/* Стилі для форм авторизації та реєстрації */
+.auth-container {
     max-width: 400px;
+    margin: 50px auto;
+    background: #fff;
+    padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-form label {
-    display: block;
-    margin-bottom: 8px;
+.auth-container h1 {
+    margin-bottom: 20px;
 }
 
-form input {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 10px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
+.auth-container form {
+    display: flex;
+    flex-direction: column;
 }
 
-form button {
-    width: 100%;
+.auth-container label {
+    margin: 8px 0;
+}
+
+.auth-container input {
     padding: 10px;
-    background-color: #333;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.auth-container button {
+    padding: 10px;
+    background-color: #4CAF50;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
 }
 
-form button:hover {
-    background-color: #555;
+.auth-container button:hover {
+    background-color: #45a049;
 }
 
-.guitars-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-around;
-    padding: 20px;
-}
-
-.guitar {
-    background-color: #fff;
-    margin: 10px;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 200px;
+.auth-container p {
     text-align: center;
 }
 
-.guitar img {
-    max-width: 100%;
-    height: auto;
+.auth-container a {
+    color: #4CAF50;
+}
+
+/* Стилі для кнопки виходу */
+.logout-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+}
+
+.logout-button {
+    padding: 10px 20px;
+    background-color: #f44336;
+    color: white;
+    border: none;
     border-radius: 4px;
-}
-
-.guitar h2 {
-    font-size: 18px;
-    margin: 10px 0;
-}
-
-.guitar p {
+    cursor: pointer;
     font-size: 16px;
-    color: #555;
 }
 
-.guitar a {
-    text-decoration: none;
+.logout-button:hover {
+    background-color: #e53935;
+}
+
+/* Стилі для привітання користувача */
+.greeting {
+    position: absolute;
+    top: 60px; /* Відступ від кнопки виходу */
+    left: 20px;
+    font-size: 14px;
     color: #333;
-    font-weight: bold;
 }
 
-.guitar a:hover {
-    color: #555;
+/* Стилі для спливаючого повідомлення */
+.error-message {
+    background-color: #f44336;
+    color: white;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    text-align: center;
 }

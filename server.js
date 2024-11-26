@@ -1,16 +1,23 @@
 const express = require('express');
 const path = require('path');
-const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
+const fs = require('fs');
 const pool = require('./db');
-const { registerUser, loginUser, createSession, getSession } = require('./auth');
-
+const session = require('express-session');
 const app = express();
-const PORT = 2000;
 
-// Middleware
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
+// Налаштування сесій
+app.use(session({
+    secret: 'secret-key', // Секретний ключ для підпису cookie
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false } // У продакшн середовищі використовуйте true і HTTPS
+}));
+
+// Мідлвар для обробки форм
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+// Статичні файли для CSS
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Функція для отримання гітар з бази даних
@@ -19,96 +26,88 @@ async function getGuitars() {
     return rows;
 }
 
-// Middleware для перевірки авторизації
+// Мідлвар для перевірки, чи користувач авторизований
 function isAuthenticated(req, res, next) {
-    const sessionId = req.cookies.sessionId;
-    const session = sessionId ? getSession(sessionId) : null;
-
-    if (session) {
-        req.user = session.userEmail;
-        next();
+    if (req.session.user) {
+        return next(); // Користувач авторизований, переходимо до наступного обробника
     } else {
-        res.redirect('/login');
+        res.redirect('/login'); // Користувач не авторизований, перенаправляємо на сторінку авторизації
     }
 }
 
-// Головна сторінка (Каталог гітар)
+// Головна сторінка (каталог гітар) - доступно тільки для авторизованих користувачів
 app.get('/', isAuthenticated, async (req, res) => {
-    try {
-        // Отримуємо дані про гітари з бази
-        const guitars = await getGuitars();
+    const guitars = await getGuitars();
+    const filePath = path.join(__dirname, 'views', 'index.html');
 
-        // Відправляємо HTML файл
-        res.sendFile(path.join(__dirname, 'views', 'index.html'), function (err, content) {
-            if (err) {
-                res.status(500).send('Помилка сервера');
-            } else {
-                // Створюємо HTML для кожної гітари
-                const guitarsHtml = guitars.map(guitar => `
-                    <div class="guitar">
-                        <h2>${guitar.name}</h2>
-                        <p>Ціна: ${guitar.price}</p>
-                        <a href="${guitar.link}" target="_blank">Детальніше</a>
-                    </div>
-                `).join(''); // З'єднуємо всі елементи в один рядок
+    fs.readFile(filePath, 'utf-8', (err, content) => {
+        if (err) {
+            res.status(500).send('Помилка сервера');
+            return;
+        }
 
-                // Заміна шаблонних змінних на реальні значення
-                const pageContent = content.replace('{{guitars}}', guitarsHtml).replace('{{user}}', `Вітаємо, ${req.user.name}`);
-                
-                // Відправляємо модифікований HTML
-                res.send(pageContent);
-            }
-        });
-    } catch (err) {
-        console.error('Помилка при отриманні гітар:', err);
-        res.status(500).send('Щось пішло не так');
-    }
+        const guitarsHtml = guitars.map(guitar =>` 
+            <div class="guitar">
+                <h2>${guitar.name}</h2>
+                <p>Ціна: ${guitar.price}</p>
+                <a href="${guitar.link}" target="_blank">Детальніше</a>
+            </div>
+        `).join('');
+
+        const updatedContent = content.replace('{{guitars}}', guitarsHtml);
+        const finalContent = updatedContent.replace('{{username}}', req.session.user.username);
+
+        res.send(finalContent);  // Відправляємо оновлений HTML
+    });
 });
 
-
-// Сторінка реєстрації
+// Сторінка для реєстрації
 app.get('/register', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'register.html'));
 });
 
-// Обробка реєстрації
+// Реєстрація користувача (дані не зберігаються в базі)
 app.post('/register', (req, res) => {
-    const { email, password } = req.body;
-    try {
-        registerUser(email, password);
-        const sessionId = createSession(email);
-        res.cookie('sessionId', sessionId, { httpOnly: true });
-        res.redirect('/');
-    } catch (e) {
-        res.status(400).send('Користувач з таким email вже існує');
-    }
+    const { username, password } = req.body;
+
+    // Створюємо сесію для нового користувача
+    req.session.user = { username, password }; // Зберігаємо в сесії (без пароля в реальному застосунку)
+    
+    res.redirect('/');
 });
 
-// Сторінка авторизації
+// Сторінка для авторизації
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'login.html'));
 });
 
-// Обробка авторизації
+// Авторизація користувача
 app.post('/login', (req, res) => {
-    const { email, password } = req.body;
-    const isAuthenticated = loginUser(email, password);
-    if (isAuthenticated) {
-        const sessionId = createSession(email);
-        res.cookie('sessionId', sessionId, { httpOnly: true });
+    const { username, password } = req.body;
+
+    // Для простоти тут просто перевіряємо введені дані (у реальному застосунку необхідна валідація)
+    if (username === req.session.user?.username && password === req.session.user?.password) {
+        req.session.user = { username, password };  // Зберігаємо користувача в сесії
         res.redirect('/');
     } else {
-        res.status(400).send('Невірний email або пароль');
+        // Якщо авторизація не вдалася, перенаправляємо на сторінку входу з повідомленням про помилку
+        res.redirect('/login?error=Невірний логін або пароль');
     }
 });
 
-// Вихід з акаунту
+// Вихід з облікового запису
 app.get('/logout', (req, res) => {
-    res.clearCookie('sessionId');
-    res.redirect('/login');
+    req.session.destroy((err) => {
+        if (err) {
+            return res.send('Помилка при виході');
+        }
+        // Після успішного виходу редирект на сторінку авторизації
+        res.redirect('/login');
+    });
 });
 
-// Сервер слухає порт
-app.listen(PORT, () => {
-    console.log(`Сервер працює на http://localhost:${PORT}`);
+
+// Запуск сервера на порту 2000
+app.listen(2000, () => {
+    console.log('Сервер працює на http://localhost:2000');
 });

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,17 +7,21 @@
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <header>
-        <h1>Каталог гітар</h1>
-        <div>
-            <p>{{user}}</p>
-            <a href="/logout">Вихід</a>
-        </div>
-    </header>
+    <!-- Кнопка виходу в лівому верхньому куті -->
+    <div class="logout-container">
+        <a href="/logout">
+            <button class="logout-button">Вихід</button>
+        </a>
+    </div>
+
+    <!-- Привітання користувача -->
+    <div class="greeting">
+        <p>Привіт, {{username}}!</p>
+    </div>
     
+    <h1>Каталог гітар</h1>
     <div class="guitars-container">
         {{guitars}}
     </div>
-    
 </body>
 </html>

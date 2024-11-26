@@ -1,7 +1,5 @@
 const puppeteer = require('puppeteer');
-const axios = require('axios');
-const path = require('path');
-const pool = require('./db'); // Підключення до бази даних
+const pool = require('./db');  // Підключення до бази даних
 
 async function scrapeGuitars() {
     const browser = await puppeteer.launch({ headless: true });
@@ -15,45 +13,30 @@ async function scrapeGuitars() {
             const results = [];
             const elements = document.querySelectorAll('.goods-tile');
 
-            elements.forEach(element => {
+            for (const element of elements) {
                 const name = element.querySelector('.goods-tile__title')?.textContent.trim() || '';
                 const price = element.querySelector('.goods-tile__price-value')?.textContent.trim() || '';
                 const link = element.querySelector('.goods-tile__title')?.href || '';
                 
-                // Просто збираємо без зображень
+                // Не будемо парсити зображення
+
                 if (name && price && link) {
-                    results.push({ name, price, link });
+                    results.push({ name, price, link, image: '' });  // Порожнє значення для зображення
                 }
-            });
+            }
 
             return results;
         });
 
         console.log('Зібрані гітари:', guitars);
 
-        const insertPromises = [];
-
+        // Додавання гітари в базу даних без зображень
         for (const guitar of guitars) {
-            // Перевірка наявності в базі перед вставкою
-            const [rows] = await pool.execute(
-                'SELECT * FROM guitars WHERE name = ? AND price = ? AND link = ?',
-                [guitar.name, guitar.price, guitar.link]
+            await pool.execute(
+                'INSERT INTO guitars (name, price, link, image_path) VALUES (?, ?, ?, ?)',
+                [guitar.name, guitar.price, guitar.link, guitar.image]
             );
-
-            if (rows.length === 0) {
-                insertPromises.push(
-                    pool.execute(
-                        'INSERT INTO guitars (name, price, link) VALUES (?, ?, ?)',
-                        [guitar.name, guitar.price, guitar.link]
-                    )
-                );
-            } else {
-                console.log(`Гітара "${guitar.name}" вже є в базі`);
-            }
         }
-
-        // Очікуємо завершення всіх вставок в базу
-        await Promise.all(insertPromises);
 
         console.log('Дані успішно завантажено та збережено!');
     } catch (error) {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,20 +7,30 @@
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <header>
-        <h1>Вхід в акаунт</h1>
-    </header>
+    <div class="auth-container">
+        <h1>Авторизація</h1>
 
-    <form action="/login" method="POST">
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
-        
-        <label for="password">Пароль:</label>
-        <input type="password" id="password" name="password" required>
-        
-        <button type="submit">Увійти</button>
-    </form>
+        <!-- Спливне повідомлення про помилку -->
+        <script>
+            // Якщо є помилка в URL, показуємо alert
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            if (error) {
+                alert(error);
+            }
+        </script>
 
-    <p>Ще не маєте акаунта? <a href="/register">Зареєструйтеся</a></p>
+        <form action="/login" method="POST">
+            <label for="username">Логін:</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="password">Пароль:</label>
+            <input type="password" id="password" name="password" required>
+            
+            <button type="submit">Увійти</button>
+        </form>
+
+        <p>Ще не зареєстровані? <a href="/register">Зареєструватися</a></p>
+    </div>
 </body>
 </html>
