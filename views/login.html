@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Авторизація</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Вхід в акаунт</h1>
+    </header>
+
+    <form action="/login" method="POST">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+        
+        <label for="password">Пароль:</label>
+        <input type="password" id="password" name="password" required>
+        
+        <button type="submit">Увійти</button>
+    </form>
+
+    <p>Ще не маєте акаунта? <a href="/register">Зареєструйтеся</a></p>
+</body>
+</html>

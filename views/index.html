@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,9 +7,17 @@
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <h1>Каталог гітар</h1>
+    <header>
+        <h1>Каталог гітар</h1>
+        <div>
+            <p>{{user}}</p>
+            <a href="/logout">Вихід</a>
+        </div>
+    </header>
+    
     <div class="guitars-container">
         {{guitars}}
     </div>
+    
 </body>
 </html>
