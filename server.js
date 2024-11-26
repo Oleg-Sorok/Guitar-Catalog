@@ -4,6 +4,7 @@ const fs = require('fs');
 const pool = require('./db');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
+const { scrapeGuitars } = require('./scraper');  // Підключення функції парсингу
 const app = express();
 
 // Налаштування сесій
@@ -22,8 +23,16 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Функція для отримання гітар з бази даних
-async function getGuitars() {
-    const [rows] = await pool.query('SELECT * FROM guitars');
+async function getGuitars(query = '') {
+    let sql = 'SELECT * FROM guitars';
+    let params = [];
+
+    if (query) {
+        sql += ' WHERE name LIKE ?';
+        params.push(`%${query}%`);  // Пошук за назвою гітари
+    }
+
+    const [rows] = await pool.query(sql, params);
     return rows;
 }
 
@@ -42,9 +51,16 @@ async function findUserByUsername(username) {
     return rows[0];
 }
 
-// Головна сторінка (каталог гітар) - доступно тільки для авторизованих користувачів
+// Головна сторінка (каталог гітар)
 app.get('/', isAuthenticated, async (req, res) => {
+    const searchQuery = req.query.search || '';  // Отримуємо значення з форми пошуку
     const guitars = await getGuitars();
+
+    // Якщо є запит на пошук, фільтруємо гітари за назвою
+    const filteredGuitars = guitars.filter(guitar =>
+        guitar.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     const filePath = path.join(__dirname, 'views', 'index.html');
 
     fs.readFile(filePath, 'utf-8', (err, content) => {
@@ -53,10 +69,39 @@ app.get('/', isAuthenticated, async (req, res) => {
             return;
         }
 
-        const guitarsHtml = guitars.map(guitar =>` 
+        const guitarsHtml = filteredGuitars.map(guitar => `
             <div class="guitar">
                 <h2>${guitar.name}</h2>
                 <p>Ціна: ${guitar.price}</p>
+                <a href="${guitar.link}" target="_blank">Детальніше</a>
+                <img src="${guitar.image}" alt="${guitar.name}" class="guitar-image">
+            </div>
+        `).join('');
+
+        const updatedContent = content.replace('{{guitars}}', guitarsHtml);
+        const finalContent = updatedContent.replace('{{username}}', req.session.user.username);
+
+        res.send(finalContent);  // Відправляємо оновлений HTML
+    });
+});
+
+// Маршрут для пошуку гітар
+app.get('/search', isAuthenticated, async (req, res) => {
+    const query = req.query.query || '';  // Отримуємо параметр пошуку з запиту
+    const guitars = await getGuitars(query);
+    const filePath = path.join(__dirname, 'views', 'index.html');
+
+    fs.readFile(filePath, 'utf-8', (err, content) => {
+        if (err) {
+            res.status(500).send('Помилка сервера');
+            return;
+        }
+
+        const guitarsHtml = guitars.map(guitar => `
+            <div class="guitar">
+                <h2>${guitar.name}</h2>
+                <p>Ціна: ${guitar.price}</p>
+                <img src="${guitar.image_path}" alt="${guitar.name}" class="guitar-image">
                 <a href="${guitar.link}" target="_blank">Детальніше</a>
             </div>
         `).join('');
@@ -66,6 +111,20 @@ app.get('/', isAuthenticated, async (req, res) => {
 
         res.send(finalContent);  // Відправляємо оновлений HTML
     });
+});
+
+// Маршрут для оновлення каталогу
+app.get('/refresh', async (req, res) => {
+    try {
+        // Запускаємо парсинг
+        await scrapeGuitars();
+
+        // Перенаправляємо користувача назад на каталог після оновлення
+        res.redirect('/');
+    } catch (error) {
+        console.error('Помилка під час оновлення каталогу:', error);
+        res.status(500).send('Сталася помилка під час оновлення каталогу.');
+    }
 });
 
 // Сторінка для реєстрації

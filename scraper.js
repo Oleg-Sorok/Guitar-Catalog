@@ -17,11 +17,10 @@ async function scrapeGuitars() {
                 const name = element.querySelector('.goods-tile__title')?.textContent.trim() || '';
                 const price = element.querySelector('.goods-tile__price-value')?.textContent.trim() || '';
                 const link = element.querySelector('.goods-tile__title')?.href || '';
-                
-                // Не будемо парсити зображення
+                const image = element.querySelector('.goods-tile__image img')?.src || ''; // XPath для зображення
 
-                if (name && price && link) {
-                    results.push({ name, price, link, image: '' });  // Порожнє значення для зображення
+                if (name && price && link && image) {
+                    results.push({ name, price, link, image_path: image });
                 }
             }
 
@@ -30,11 +29,11 @@ async function scrapeGuitars() {
 
         console.log('Зібрані гітари:', guitars);
 
-        // Додавання гітари в базу даних без зображень
+        // Додавання гітари в базу даних
         for (const guitar of guitars) {
             await pool.execute(
                 'INSERT INTO guitars (name, price, link, image_path) VALUES (?, ?, ?, ?)',
-                [guitar.name, guitar.price, guitar.link, guitar.image]
+                [guitar.name, guitar.price, guitar.link, guitar.image_path]
             );
         }
 

@@ -27,6 +27,13 @@ h1 {
     text-align: center;
 }
 
+.guitar img {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
 /* Стилі для форм авторизації та реєстрації */
 .auth-container {
     max-width: 400px;
@@ -137,4 +144,54 @@ h1 {
 .error-popup.hidden {
     opacity: 0;
     pointer-events: none;
+}
+
+/* Стилі для кнопки оновлення */
+.refresh-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.refresh-button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.refresh-button:hover {
+    background-color: #0056b3;
+}
+
+/* Стилі для контейнера пошуку */
+.search-container {
+    text-align: center;
+    margin-top: 20px;
+}
+
+/* Стилі для поля введення пошуку */
+.search-input {
+    padding: 10px;
+    width: 300px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+/* Стилі для кнопки пошуку */
+.search-button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.search-button:hover {
+    background-color: #45a049;
 }
