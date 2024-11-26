@@ -9,28 +9,33 @@
 <body>
     <div class="auth-container">
         <h1>Авторизація</h1>
-
-        <!-- Спливне повідомлення про помилку -->
-        <script>
-            // Якщо є помилка в URL, показуємо alert
-            const urlParams = new URLSearchParams(window.location.search);
-            const error = urlParams.get('error');
-            if (error) {
-                alert(error);
-            }
-        </script>
-
         <form action="/login" method="POST">
-            <label for="username">Логін:</label>
+            <label for="username">Ім'я користувача</label>
             <input type="text" id="username" name="username" required>
-            
-            <label for="password">Пароль:</label>
+            <label for="password">Пароль</label>
             <input type="password" id="password" name="password" required>
-            
             <button type="submit">Увійти</button>
         </form>
-
-        <p>Ще не зареєстровані? <a href="/register">Зареєструватися</a></p>
+        <p>Не маєте облікового запису? <a href="/register">Зареєструйтеся</a></p>
     </div>
+
+    <!-- Контейнер для повідомлення про помилку -->
+    <div id="errorMessage" class="error-popup hidden">
+        Невірний логін або пароль
+    </div>
+
+    <script>
+        // Перевіряємо параметр 'error' у URL
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('error') === 'invalid') {
+            const errorPopup = document.getElementById('errorMessage');
+            errorPopup.classList.remove('hidden'); // Показуємо повідомлення
+
+            // Ховаємо повідомлення через 3 секунди
+            setTimeout(() => {
+                errorPopup.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
 </body>
 </html>

@@ -117,3 +117,24 @@ h1 {
     border-radius: 4px;
     text-align: center;
 }
+
+/* Спливаюче повідомлення */
+.error-popup {
+    position: fixed;
+    top: 10px; /* Відступ від верхнього краю */
+    left: 50%; /* Вирівнюємо по горизонталі */
+    transform: translateX(-50%); /* Центруємо по горизонталі */
+    background-color: #f44336;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    font-size: 16px;
+    z-index: 1000;
+    transition: opacity 0.5s ease;
+}
+
+.error-popup.hidden {
+    opacity: 0;
+    pointer-events: none;
+}

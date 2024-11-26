@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const pool = require('./db');
+const bcrypt = require('bcrypt');
 const session = require('express-session');
 const app = express();
 
@@ -35,6 +36,12 @@ function isAuthenticated(req, res, next) {
     }
 }
 
+// Функція для перевірки чи існує користувач
+async function findUserByUsername(username) {
+    const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+    return rows[0];
+}
+
 // Головна сторінка (каталог гітар) - доступно тільки для авторизованих користувачів
 app.get('/', isAuthenticated, async (req, res) => {
     const guitars = await getGuitars();
@@ -66,14 +73,23 @@ app.get('/register', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'register.html'));
 });
 
-// Реєстрація користувача (дані не зберігаються в базі)
-app.post('/register', (req, res) => {
+// Реєстрація нового користувача
+app.post('/register', async (req, res) => {
     const { username, password } = req.body;
 
-    // Створюємо сесію для нового користувача
-    req.session.user = { username, password }; // Зберігаємо в сесії (без пароля в реальному застосунку)
-    
-    res.redirect('/');
+    if (!username || !password) {
+        return res.send('Будь ласка, заповніть усі поля');
+    }
+
+    const existingUser = await findUserByUsername(username);
+    if (existingUser) {
+        return res.send('Користувач із таким ім\'ям вже існує');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await pool.execute('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashedPassword]);
+
+    res.redirect('/login');
 });
 
 // Сторінка для авторизації
@@ -82,17 +98,21 @@ app.get('/login', (req, res) => {
 });
 
 // Авторизація користувача
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
-    // Для простоти тут просто перевіряємо введені дані (у реальному застосунку необхідна валідація)
-    if (username === req.session.user?.username && password === req.session.user?.password) {
-        req.session.user = { username, password };  // Зберігаємо користувача в сесії
-        res.redirect('/');
-    } else {
-        // Якщо авторизація не вдалася, перенаправляємо на сторінку входу з повідомленням про помилку
-        res.redirect('/login?error=Невірний логін або пароль');
+    const user = await findUserByUsername(username);
+    if (!user) {
+        return res.redirect('/login?error=invalid'); // Передаємо параметр помилки
     }
+
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
+        return res.redirect('/login?error=invalid'); // Передаємо параметр помилки
+    }
+
+    req.session.user = { id: user.id, username: user.username };
+    res.redirect('/');
 });
 
 // Вихід з облікового запису
