@@ -1,30 +1,27 @@
 const puppeteer = require('puppeteer');
-const mysql = require('mysql2');
+const pool = require('./db');  // Підключення до бази даних
 
-// Підключення до бази даних MySQL
-const pool = mysql.createPool({
-    host: 'localhost',
-    user: 'root',   // замініть на ваше ім'я користувача
-    password: '0000', // замініть на ваш пароль
-    database: 'guitars_catalog' // замініть на назву вашої бази
-});
-
-// Функція для запису даних у базу даних
+// Функція для запису даних у базу даних без перевірки на дублікати
 async function saveGuitarsToDatabase(guitars) {
     for (const guitar of guitars) {
-        const { name, price, link, imagePath } = guitar;
+        const { name, price, link, image } = guitar;
 
-        // Якщо зображення відсутнє, передаємо порожній рядок
-        const image = imagePath || '';
+        // SQL запит для оновлення або вставки нової гітари
+        const upsertSql = `
+            INSERT INTO guitars (name, price, link, image_path) 
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+            price = VALUES(price), 
+            image_path = VALUES(image_path), 
+            link = VALUES(link)
+        `;
 
-        // SQL запит для вставки даних в таблицю
-        const sql = 'INSERT INTO guitars (name, price, link, image_path) VALUES (?, ?, ?, ?)';
-
-        // Виконання запиту
-        await pool.promise().query(sql, [name, price, link, image]);
-        console.log(`Гітару "${name}" успішно додано в базу даних.`);
+        // Виконуємо upsert (вставка або оновлення)
+        await pool.query(upsertSql, [name, price, link, image]);
+        console.log(`Гітару "${name}" успішно оновлено або додано в базу даних.`);
     }
 }
+
 
 // Основна функція парсингу та запису в базу
 (async () => {
@@ -51,17 +48,17 @@ async function saveGuitarsToDatabase(guitars) {
             const name = guitar.querySelector('.goods-tile__title')?.textContent?.trim();
             const price = guitar.querySelector('.goods-tile__price-value')?.textContent?.trim();
             const link = guitar.querySelector('a')?.href;
-            const imagePath = guitar.querySelector('img')?.src;  // Парсимо URL зображення
+            const image = guitar.querySelector('img')?.src;  // Парсимо URL зображення
 
             // Виведення кожної гітари для перевірки
-            console.log(`Гітара: ${name}, Ціна: ${price}, Посилання: ${link}, Зображення: ${imagePath}`);
+            console.log(`Гітара: ${name}, Ціна: ${price}, Посилання: ${link}, Зображення: ${image}`);
 
             if (name && price && link) {
                 guitars.push({
                     name,
                     price,  // Ціна зберігається як текст
                     link,
-                    image_path: imagePath,  // Зберігаємо URL зображення
+                    image_path: image,  // Зберігаємо URL зображення
                 });
             }
         });
@@ -75,8 +72,9 @@ async function saveGuitarsToDatabase(guitars) {
     await browser.close();
 
     // Записуємо гітари в базу даних
-    //await saveGuitarsToDatabase(guitars);
+    await saveGuitarsToDatabase(guitars);
 
-    // Закриваємо з'єднання з базою даних
-    pool.end();
+    
 })();
+
+

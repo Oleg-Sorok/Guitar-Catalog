@@ -18,5 +18,25 @@
         </form>
         <p>Вже є акаунт? <a href="/login">Увійти</a></p> <!-- Посилання на авторизацію -->
     </div>
+
+    <!-- Контейнер для повідомлення про помилку -->
+    <div id="errorMessage" class="error-popup hidden">
+        Користувач з таким Username вже існує
+    </div>
+
+    <script>
+        // Перевіряємо параметр 'error' у URL
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('error') === 'invalid') {
+            const errorPopup = document.getElementById('errorMessage');
+            errorPopup.classList.remove('hidden'); // Показуємо повідомлення
+
+            // Ховаємо повідомлення через 3 секунди
+            setTimeout(() => {
+                errorPopup.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
+
 </body>
 </html>

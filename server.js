@@ -113,20 +113,6 @@ app.get('/search', isAuthenticated, async (req, res) => {
     });
 });
 
-// Маршрут для оновлення каталогу
-app.get('/refresh', async (req, res) => {
-    try {
-        // Запускаємо парсинг
-        await scrapeGuitars();
-
-        // Перенаправляємо користувача назад на каталог після оновлення
-        res.redirect('/');
-    } catch (error) {
-        console.error('Помилка під час оновлення каталогу:', error);
-        res.status(500).send('Сталася помилка під час оновлення каталогу.');
-    }
-});
-
 // Сторінка для реєстрації
 app.get('/register', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'register.html'));
@@ -137,12 +123,12 @@ app.post('/register', async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-        return res.send('Будь ласка, заповніть усі поля');
+        return res.redirect('/register?error=invalid'); // Передаємо параметр помилки
     }
 
     const existingUser = await findUserByUsername(username);
     if (existingUser) {
-        return res.send('Користувач із таким ім\'ям вже існує');
+        return res.redirect('/register?error=invalid'); // Передаємо параметр помилки
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
