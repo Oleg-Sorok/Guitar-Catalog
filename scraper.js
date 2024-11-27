@@ -1,48 +1,82 @@
 const puppeteer = require('puppeteer');
-const pool = require('./db');  // Підключення до бази даних
+const mysql = require('mysql2');
 
-async function scrapeGuitars() {
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
+// Підключення до бази даних MySQL
+const pool = mysql.createPool({
+    host: 'localhost',
+    user: 'root',   // замініть на ваше ім'я користувача
+    password: '0000', // замініть на ваш пароль
+    database: 'guitars_catalog' // замініть на назву вашої бази
+});
 
-    try {
-        await page.goto('https://rozetka.com.ua/ua/gitary/c4628348/', { waitUntil: 'networkidle2' });
-        await page.waitForSelector('.goods-tile');
+// Функція для запису даних у базу даних
+async function saveGuitarsToDatabase(guitars) {
+    for (const guitar of guitars) {
+        const { name, price, link, imagePath } = guitar;
 
-        const guitars = await page.evaluate(() => {
-            const results = [];
-            const elements = document.querySelectorAll('.goods-tile');
+        // Якщо зображення відсутнє, передаємо порожній рядок
+        const image = imagePath || '';
 
-            for (const element of elements) {
-                const name = element.querySelector('.goods-tile__title')?.textContent.trim() || '';
-                const price = element.querySelector('.goods-tile__price-value')?.textContent.trim() || '';
-                const link = element.querySelector('.goods-tile__title')?.href || '';
-                const image = element.querySelector('.goods-tile__image img')?.src || ''; // XPath для зображення
+        // SQL запит для вставки даних в таблицю
+        const sql = 'INSERT INTO guitars (name, price, link, image_path) VALUES (?, ?, ?, ?)';
 
-                if (name && price && link && image) {
-                    results.push({ name, price, link, image_path: image });
-                }
-            }
-
-            return results;
-        });
-
-        console.log('Зібрані гітари:', guitars);
-
-        // Додавання гітари в базу даних
-        for (const guitar of guitars) {
-            await pool.execute(
-                'INSERT INTO guitars (name, price, link, image_path) VALUES (?, ?, ?, ?)',
-                [guitar.name, guitar.price, guitar.link, guitar.image_path]
-            );
-        }
-
-        console.log('Дані успішно завантажено та збережено!');
-    } catch (error) {
-        console.error('Помилка під час збору даних:', error);
-    } finally {
-        await browser.close();
+        // Виконання запиту
+        await pool.promise().query(sql, [name, price, link, image]);
+        console.log(`Гітару "${name}" успішно додано в базу даних.`);
     }
 }
 
-module.exports = { scrapeGuitars };
+// Основна функція парсингу та запису в базу
+(async () => {
+    const browser = await puppeteer.launch({ headless: false }); // Запуск в режимі не headless для дебагу
+    const page = await browser.newPage();
+
+    console.log('Підключаємось до сторінки...');
+
+    // Переходимо на сторінку
+    await page.goto('https://rozetka.com.ua/ua/gitary/c4628348/', { waitUntil: 'networkidle2' });
+
+    // Чекаємо, поки елементи з'являться на сторінці
+    await page.waitForSelector('.goods-tile');  // Чекаємо, поки з'являться елементи гітар
+    console.log('Елементи завантажено');
+
+    // Оцінюємо сторінку та витягуємо дані
+    const guitars = await page.evaluate(() => {
+        const guitarElements = document.querySelectorAll('.goods-tile');  // Знайдемо всі елементи гітар
+        console.log(`Знайдено ${guitarElements.length} гітар`);
+
+        const guitars = [];
+
+        guitarElements.forEach(guitar => {
+            const name = guitar.querySelector('.goods-tile__title')?.textContent?.trim();
+            const price = guitar.querySelector('.goods-tile__price-value')?.textContent?.trim();
+            const link = guitar.querySelector('a')?.href;
+            const imagePath = guitar.querySelector('img')?.src;  // Парсимо URL зображення
+
+            // Виведення кожної гітари для перевірки
+            console.log(`Гітара: ${name}, Ціна: ${price}, Посилання: ${link}, Зображення: ${imagePath}`);
+
+            if (name && price && link) {
+                guitars.push({
+                    name,
+                    price,  // Ціна зберігається як текст
+                    link,
+                    image_path: imagePath,  // Зберігаємо URL зображення
+                });
+            }
+        });
+
+        return guitars;
+    });
+
+    console.log('Парсинг завершено. Результат:', guitars);
+
+    // Закриваємо браузер після парсингу
+    await browser.close();
+
+    // Записуємо гітари в базу даних
+    //await saveGuitarsToDatabase(guitars);
+
+    // Закриваємо з'єднання з базою даних
+    pool.end();
+})();
